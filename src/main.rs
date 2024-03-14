@@ -6,9 +6,11 @@
 // 5. do simple calculation of physical properties of the object and display them in a graph
 // 6. Analyze results and refine unil the goal is met
 
-use macroquad::prelude::*;
+use macroquad::{experimental::scene::Node, prelude::*};
 
-const SPACING: f32 = 20.0;
+const SPACING: f32 = 40.0;
+const MICROCELL_SIZE: f32 = 10.0;
+const CELL_SIZE: f32 = MICROCELL_SIZE * 4.0;
 const LINE_THICKNESS: f32 = 2.0;
 
 trait Drawable {
@@ -25,13 +27,33 @@ struct Rectangle {
     y: i32,
     w: i32,
     h: i32,
+    thck: f32,
     color: Color,
+    color_bkcg: Color,
 }
 
 struct Ground {
     x: i32,
     y: i32,
     len: i32,
+    ornt: Orientation,
+    color: Color,
+}
+
+struct Stick {
+    x: i32,
+    y: i32,
+    len: i32,
+    width: f32,
+    ornt: Orientation,
+    color: Color,
+}
+
+struct Arrow {
+    x: i32,
+    y: i32,
+    len: i32,
+    arrow_size: f32,
     ornt: Orientation,
     color: Color,
 }
@@ -43,8 +65,54 @@ impl Drawable for Rectangle {
             self.y as f32 * SPACING,
             self.w as f32 * SPACING,
             self.h as f32 * SPACING,
+            self.color_bkcg,
+        );
+        draw_rectangle_lines(
+            self.x as f32 * SPACING,
+            self.y as f32 * SPACING,
+            self.w as f32 * SPACING,
+            self.h as f32 * SPACING,
+            self.thck,
             self.color,
         );
+    }
+}
+impl Drawable for Stick {
+    fn draw(&self) {
+        match self.ornt {
+            Orientation::Up | Orientation::Down => draw_rectangle(
+                (self.x as f32 - self.width * 0.5) * SPACING,
+                self.y as f32 * SPACING,
+                self.width * SPACING,
+                self.len as f32 * SPACING,
+                self.color,
+            ),
+            Orientation::Right | Orientation::Left => draw_rectangle(
+                self.x as f32 * SPACING,
+                (self.y as f32 - self.width * 0.5) * SPACING,
+                self.len as f32 * SPACING,
+                self.width * SPACING,
+                self.color,
+            ),
+        }
+    }
+}
+
+impl Drawable for Arrow {
+    fn draw(&self) {
+        match self.ornt {
+            Orientation::Up => {
+                draw_line(
+                    self.x as f32 * SPACING,
+                    self.y as f32 * SPACING,
+                    self.x as f32 * SPACING,
+                    (self.y + self.len) as f32 * SPACING,
+                    LINE_THICKNESS,
+                    self.color,
+                );
+            }
+            _ => todo!(),
+        }
     }
 }
 
@@ -61,7 +129,7 @@ impl Drawable for Ground {
                     self.color,
                 );
 
-                for i in 0..=(self.len * 2) {
+                for i in 1..=(self.len * 2) {
                     draw_line(
                         (self.x as f32 + i as f32 * 0.5) * SPACING,
                         self.y as f32 * SPACING,
@@ -83,7 +151,7 @@ impl Drawable for Ground {
                     self.color,
                 );
 
-                for i in 0..=(self.len * 2) {
+                for i in 0..(self.len * 2) {
                     draw_line(
                         (self.x as f32 + i as f32 * 0.5) * SPACING,
                         self.y as f32 * SPACING,
@@ -105,7 +173,7 @@ impl Drawable for Ground {
                     self.color,
                 );
 
-                for i in 0..=(self.len * 2) {
+                for i in 0..(self.len * 2) {
                     draw_line(
                         self.x as f32 * SPACING,
                         (self.y as f32 + i as f32 * 0.5) * SPACING,
@@ -127,7 +195,7 @@ impl Drawable for Ground {
                     self.color,
                 );
 
-                for i in 0..=(self.len * 2) {
+                for i in 1..=(self.len * 2) {
                     draw_line(
                         self.x as f32 * SPACING,
                         (self.y as f32 + i as f32 * 0.5) * SPACING,
@@ -175,7 +243,7 @@ fn draw_all_objs(vec: Vec<Box<dyn Drawable>>) {
 #[macroquad::main("BasicShapes")]
 async fn main() {
     loop {
-        let blueprint_clr: Color = Color::from_hex(0x2C93FC);
+        let blueprint_clr: Color = Color::from_hex(0x228be6);
         clear_background(blueprint_clr);
         let mut drawable_objects: Vec<Box<dyn Drawable>> = vec![];
 
@@ -184,7 +252,9 @@ async fn main() {
             y: 3,
             w: 6,
             h: 3,
+            thck: 6.0,
             color: WHITE,
+            color_bkcg: blueprint_clr,
         };
         drawable_objects.push(Box::new(rec_obj));
 
@@ -198,14 +268,14 @@ async fn main() {
         drawable_objects.push(Box::new(gnd_obj));
 
         drawable_objects.push(Box::new(Ground {
-            x: 12,
-            y: 6,
-            len: 3,
+            x: 17,
+            y: 3,
+            len: 2,
             ornt: Orientation::Down,
             color: WHITE,
         }));
         drawable_objects.push(Box::new(Ground {
-            x: 12,
+            x: 2,
             y: 9,
             len: 5,
             ornt: Orientation::Right,
@@ -216,6 +286,23 @@ async fn main() {
             y: 9,
             len: 5,
             ornt: Orientation::Left,
+            color: WHITE,
+        }));
+
+        drawable_objects.push(Box::new(Stick {
+            x: 18,
+            y: 3,
+            len: 9,
+            width: 0.5,
+            ornt: Orientation::Up,
+            color: WHITE,
+        }));
+        drawable_objects.push(Box::new(Stick {
+            x: 2,
+            y: 10,
+            len: 4,
+            width: 0.5,
+            ornt: Orientation::Right,
             color: WHITE,
         }));
 
